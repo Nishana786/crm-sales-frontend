@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { LeadsProvider } from "../context/LeadsContext";
+import { LeadsProvider } from "../modules/leads/store/LeadsContext";
 
 export default function RootLayout() {
   return (

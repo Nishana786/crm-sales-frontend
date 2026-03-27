@@ -5,14 +5,16 @@ import { useState } from "react";
 export default function LoginScreen() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("agent@salesflow.com");
-  const [password, setPassword] = useState("");
+const [email, setEmail] = useState("Nishana@superhero.com");
+const [password, setPassword] = useState("superhero123");
 
   const handleLogin = () => {
-    if (email && password) {
-      router.replace("./(tabs)");
-    }
-  };
+  if (email === "Nishana@superhero.com" && password === "superhero123") {
+    router.replace("/(tabs)");
+  } else {
+    alert("Invalid credentials");
+  }
+};
 
   return (
     <View style={styles.container}>
