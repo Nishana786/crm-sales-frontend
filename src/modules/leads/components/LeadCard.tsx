@@ -1,101 +1,134 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Linking,
-  Platform,
-} from "react-native";
+import { COLORS } from "@/src/theme/colors";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export default function LeadCard({ lead }: any) {
+import { useLeads } from "../context/LeadsContext";
+
+type Lead = {
+  _id: string;
+  name: string;
+  phone: string;
+  course: string;
+  location?: string;
+  status?: string;
+  assignedTo?: any; 
+};
+
+type LeadCardProps = {
+  lead: Lead;
+  isAdmin?: boolean;
+};
+
+export default function LeadCard({ lead, isAdmin }: LeadCardProps) {
   const router = useRouter();
+  const { deleteLead } = useLeads();
 
-  const handleCall = async () => {
-    const url = `tel:${lead.phone}`;
-    const supported = await Linking.canOpenURL(url);
+  if (!lead) return null;
 
-    if (supported) {
-      await Linking.openURL(url);
-    } else {
-      alert("Call not supported");
-    }
+  /* 🔥 FIXED (DB POPULATE SUPPORT) */
+  const assignedName =
+    typeof lead.assignedTo === "object"
+      ? lead.assignedTo?.name
+      : "Unassigned";
+
+  const status = (lead.status || "new")
+    .toLowerCase()
+    .replace(/\s+/g, "-");
+
+  const handleDelete = () => {
+    if (!lead?._id) return;
+
+    Alert.alert("Delete Lead", "Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deleteLead(lead._id),
+      },
+    ]);
   };
 
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case "new":
-        return { bg: "#dbeafe", text: "#2563eb" };
-      case "interested":
-        return { bg: "#dcfce7", text: "#16a34a" };
-      case "follow-up":
-        return { bg: "#fef3c7", text: "#d97706" };
-      case "closed":
-        return { bg: "#fee2e2", text: "#dc2626" };
-      default:
-        return { bg: "#e5e7eb", text: "#374151" };
-    }
+  const handleOpen = () => {
+    if (!lead?._id) return;
+    router.push(`/lead/${lead._id}`);
   };
 
-  const statusStyle = getStatusStyle(lead.status);
+  const handleEdit = () => {
+    if (!lead?._id) return;
+    router.push(`/add?id=${lead._id}`);
+  };
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={handleOpen}>
       <View style={styles.topRow}>
-        <View>
-          <Text style={styles.name}>
-            {lead.name}{" "}
-            <Text style={styles.classText}>({lead.class})</Text>
-          </Text>
+        <Text style={styles.name}>{lead.name}</Text>
 
-          <Text style={styles.phone}>{lead.phone}</Text>
+        <View
+          style={[
+            styles.statusBadge,
+            statusStyles[status as keyof typeof statusStyles] ||
+              statusStyles.new,
+          ]}
+        >
+          <Text style={styles.statusText}>{status.toUpperCase()}</Text>
         </View>
-
-        <TouchableOpacity onPress={() => router.push(`/details/${lead.id}`)}>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
       </View>
 
-      <View style={styles.bottomRow}>
-        <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}>
-          <Text style={[styles.badgeText, { color: statusStyle.text }]}>
-            {lead.status}
+      <View style={styles.metaRow}>
+        <Ionicons name="call-outline" size={14} color="#3b82f6" />
+        <Text style={styles.metaText}>{lead.phone}</Text>
+      </View>
+
+      <View style={styles.metaRow}>
+        <Ionicons name="school-outline" size={14} color="#6b7280" />
+        <Text style={styles.metaText}>{lead.course}</Text>
+
+        {lead.location && (
+          <>
+            <Ionicons
+              name="location-outline"
+              size={14}
+              color="#6b7280"
+              style={styles.metaIcon}
+            />
+            <Text style={styles.metaText}>{lead.location}</Text>
+          </>
+        )}
+      </View>
+
+      {/* 🔥 ASSIGNED */}
+      {lead.assignedTo && (
+        <View style={styles.assignedRow}>
+          <Ionicons name="person-outline" size={14} color="#059669" />
+          <Text style={styles.assignedText}>
+            Assigned → {assignedName}
           </Text>
         </View>
+      )}
 
+      {isAdmin && (
         <View style={styles.actions}>
-          <TouchableOpacity onPress={handleCall} style={styles.iconBtn}>
-            <Text>📞</Text>
+          <TouchableOpacity onPress={handleEdit}>
+            <Text style={styles.edit}>Edit</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => router.push(`/details/${lead.id}`)}
-            style={styles.iconBtn}
-          >
-            <Text>✏️</Text>
+          <TouchableOpacity onPress={handleDelete}>
+            <Text style={styles.delete}>Delete</Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </View>
+      )}
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fff",
     padding: 16,
-    borderRadius: 18,
-    marginBottom: 14,
-
-    ...(Platform.OS === "web"
-      ? { boxShadow: "0px 2px 8px rgba(0,0,0,0.1)" }
-      : {
-          shadowColor: "#000",
-          shadowOpacity: 0.05,
-          shadowRadius: 10,
-          elevation: 3,
-        }),
+    borderRadius: 16,
+    marginBottom: 12,
+    elevation: 2,
   },
   topRow: {
     flexDirection: "row",
@@ -103,44 +136,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   name: {
+    fontWeight: "700",
     fontSize: 16,
+    color: COLORS.text,
+  },
+  statusBadge: {
+    borderRadius: 999,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+  },
+  statusText: {
+    color: "#fff",
+    fontSize: 10,
     fontWeight: "700",
   },
-  classText: {
-    fontSize: 12,
-    color: "#64748b",
-  },
-  phone: {
-    marginTop: 4,
-    color: "#64748b",
-  },
-  arrow: {
-    fontSize: 22,
-    color: "#94a3b8",
-  },
-  bottomRow: {
+  metaRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 12,
+    marginTop: 8,
   },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+  metaText: {
+    marginLeft: 6,
+    color: COLORS.subText,
+    fontSize: 13,
   },
-  badgeText: {
-    fontSize: 12,
+  metaIcon: {
+    marginLeft: 14,
+  },
+  assignedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  assignedText: {
+    marginLeft: 6,
+    color: "#059669",
     fontWeight: "600",
-    textTransform: "capitalize",
+    fontSize: 12,
   },
   actions: {
     flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 12,
+    gap: 15,
   },
-  iconBtn: {
-    marginLeft: 10,
-    backgroundColor: "#f1f5f9",
-    padding: 8,
-    borderRadius: 10,
+  edit: {
+    color: "#2563eb",
+    fontWeight: "600",
   },
+  delete: {
+    color: "#dc2626",
+    fontWeight: "600",
+  },
+});
+
+const statusStyles = StyleSheet.create({
+  new: { backgroundColor: "#2563eb" },
+  interested: { backgroundColor: "#10b981" },
+  "follow-up": { backgroundColor: "#f59e0b" },
+  closed: { backgroundColor: "#ef4444" },
 });

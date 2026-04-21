@@ -1,10 +1,35 @@
-import { Stack } from "expo-router";
-import { LeadsProvider } from "../modules/leads/store/LeadsContext";
+import { Stack, Redirect } from "expo-router";
+import { AuthProvider, useAuth } from "../modules/auth/context/AuthContext";
+import { LeadsProvider } from "../modules/leads/context/LeadsContext";
+import { View, ActivityIndicator } from "react-native";
+
+function RootNavigator() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+
+  if (!user) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  // ✅ LOGGED IN
+  return <Redirect href="/(tabs)" />;
+}
 
 export default function RootLayout() {
   return (
-    <LeadsProvider>
-      <Stack screenOptions={{ headerShown: false }} />
-    </LeadsProvider>
+    <AuthProvider>
+      <LeadsProvider>
+        <RootNavigator />
+        <Stack screenOptions={{ headerShown: false }} />
+      </LeadsProvider>
+    </AuthProvider>
   );
 }

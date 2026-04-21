@@ -1,243 +1,107 @@
-import { ScrollView, StyleSheet, Text, View, Platform } from "react-native";
-import { useLeads } from "../../modules/leads/store/LeadsContext";
-import AppHeader from "../../shared/components/AppHeader";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { COLORS } from "@/src/theme/colors";
+
+import { useAuth } from "../../modules/auth/context/AuthContext";
+import { useLeads } from "../../modules/leads/context/LeadsContext";
+
+const INTERACTION_THRESHOLD = 60;
 
 export default function Analytics() {
-  const { leads } = useLeads();
+  const { callLogs } = useLeads();
+  const { user } = useAuth();
 
-  const total = leads.length;
+  const role = user?.role?.toLowerCase()?.trim();
 
-  const closed = leads.filter((l) => l.status === "closed").length;
+  // 🔥 HARD BLOCK (agent cannot access at all)
+  if (!user || role !== "admin") return null;
 
-  const conversionRate =
-    total === 0 ? 0 : Math.round((closed / total) * 100);
-
-  const pendingFollowUps = leads.filter(
-    (l) => l.status === "follow-up"
+  const totalCalls = callLogs.length;
+  const connectedCalls = callLogs.filter(c => c.duration > 0).length;
+  const interactedCalls = callLogs.filter(
+    c => c.duration > INTERACTION_THRESHOLD
   ).length;
 
-  const newCount = leads.filter((l) => l.status === "new").length;
-  const interested = leads.filter((l) => l.status === "interested").length;
-  const followUp = pendingFollowUps;
-  const closedCount = closed;
+  const totalDuration = callLogs.reduce((sum, c) => sum + c.duration, 0);
 
-  const totalRevenue = leads
-    .filter((l) => l.paymentStatus === "paid")
-    .reduce((sum, l) => sum + (l.amount ?? 0), 0);
+  const avgDuration =
+    totalCalls > 0 ? Math.floor(totalDuration / totalCalls) : 0;
+
+  const interactionRate =
+    totalCalls > 0
+      ? Math.floor((interactedCalls / totalCalls) * 100)
+      : 0;
 
   return (
     <ScrollView style={styles.container}>
-      <AppHeader title="Analytics" />
+      {totalCalls === 0 && (
+        <Text style={styles.empty}>No analytics data yet</Text>
+      )}
 
-      <Text style={styles.subtitle}>Performance overview</Text>
-
-      <View style={styles.cardRow}>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>TOTAL</Text>
-          <Text style={[styles.cardValue, { color: "#2563eb" }]}>
-            {total}
-          </Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>CONVERSION</Text>
-          <Text style={[styles.cardValue, { color: "#10b981" }]}>
-            {conversionRate}%
-          </Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>FOLLOW-UPS</Text>
-          <Text style={[styles.cardValue, { color: "#f59e0b" }]}>
-            {pendingFollowUps}
-          </Text>
-        </View>
+      <View style={styles.row}>
+        <StatCard label="Total Calls" value={totalCalls} />
+        <StatCard label="Connected" value={connectedCalls} />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📊 Revenue Overview</Text>
-
-        <View style={styles.revenueRow}>
-          <View>
-            <Text style={styles.label}>TOTAL REVENUE</Text>
-            <Text style={styles.amount}>₹{totalRevenue}</Text>
-          </View>
-
-          <View>
-            <Text style={styles.label}>TODAY</Text>
-            <Text style={styles.amount}>₹{totalRevenue}</Text>
-          </View>
-        </View>
+      <View style={styles.row}>
+        <StatCard label="Interacted" value={interactedCalls} />
+        <StatCard label="Interaction %" value={`${interactionRate}%`} />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📈 Lead Distribution</Text>
-
-        {total > 0 ? (
-          <>
-            <Bar label="New" value={newCount} total={total} color="#3b82f6" />
-            <Bar label="Interested" value={interested} total={total} color="#10b981" />
-            <Bar label="Follow-up" value={followUp} total={total} color="#f59e0b" />
-            <Bar label="Closed" value={closedCount} total={total} color="#ef4444" />
-          </>
-        ) : (
-          <Text style={{ color: "gray" }}>No data available</Text>
-        )}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>💡 Insights</Text>
-
-        {pendingFollowUps > 0 && (
-          <Text style={styles.warning}>
-            ⚠ {pendingFollowUps} leads need follow-up
-          </Text>
-        )}
-
-        {conversionRate < 30 && total > 0 && (
-          <Text style={styles.danger}>
-            📉 Low conversion rate ({conversionRate}%)
-          </Text>
-        )}
-
-        {conversionRate >= 50 && (
-          <Text style={styles.success}>
-            🚀 Good conversion performance
-          </Text>
-        )}
+      <View style={styles.card}>
+        <Text style={styles.label}>Avg Duration</Text>
+        <Text style={styles.value}>
+          {Math.floor(avgDuration / 60)}m {avgDuration % 60}s
+        </Text>
       </View>
     </ScrollView>
   );
 }
 
-function Bar({ label, value, total, color }: any) {
-  const percent = total === 0 ? 0 : (value / total) * 100;
-
+/* 🔹 CARD */
+function StatCard({ label, value }: any) {
   return (
-    <View style={styles.barRow}>
-      <View style={styles.barHeader}>
-        <Text style={{ fontWeight: "500" }}>{label}</Text>
-        <Text style={{ color: "gray" }}>{value}</Text>
-      </View>
-
-      <View style={styles.barBg}>
-        <View
-          style={[
-            styles.barFill,
-            { width: `${percent}%`, backgroundColor: color },
-          ]}
-        />
-      </View>
+    <View style={styles.card}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.value}>{value}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    backgroundColor: "#f1f5f9",
     flex: 1,
+    padding: 16,
+    backgroundColor: COLORS.background,
   },
 
-  subtitle: {
-    color: "gray",
-    marginBottom: 12,
+  empty: {
+    textAlign: "center",
+    marginTop: 40,
+    color: COLORS.subText,
   },
 
-  cardRow: {
+  row: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 18,
+    gap: 10,
+    marginBottom: 10,
   },
 
   card: {
-    backgroundColor: "#fff",
-    paddingVertical: 18,
-    borderRadius: 16,
-    width: "30%",
-    alignItems: "center",
-
-    ...(Platform.OS === "web"
-      ? { boxShadow: "0px 2px 8px rgba(0,0,0,0.1)" }
-      : { elevation: 3 }),
-  },
-
-  cardTitle: {
-    fontSize: 12,
-    color: "gray",
-    marginBottom: 4,
-  },
-
-  cardValue: {
-    fontSize: 22,
-    fontWeight: "700",
-  },
-
-  section: {
-    backgroundColor: "#fff",
-    padding: 18,
-    borderRadius: 16,
-    marginBottom: 18,
-
-    ...(Platform.OS === "web"
-      ? { boxShadow: "0px 2px 8px rgba(0,0,0,0.1)" }
-      : { elevation: 2 }),
-  },
-
-  sectionTitle: {
-    fontWeight: "700",
-    fontSize: 15,
-    marginBottom: 12,
-  },
-
-  revenueRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flex: 1,
+    backgroundColor: COLORS.card,
+    padding: 14,
+    borderRadius: 12,
   },
 
   label: {
+    color: COLORS.subText,
     fontSize: 12,
-    color: "gray",
   },
 
-  amount: {
+  value: {
     fontSize: 20,
-    fontWeight: "700",
-  },
-
-  barRow: {
-    marginBottom: 12,
-  },
-
-  barHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  barBg: {
-    height: 8,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 10,
-    marginTop: 6,
-  },
-
-  barFill: {
-    height: 8,
-    borderRadius: 10,
-  },
-
-  warning: {
-    color: "#f59e0b",
-    marginBottom: 6,
-  },
-
-  danger: {
-    color: "#ef4444",
-    marginBottom: 6,
-  },
-
-  success: {
-    color: "#10b981",
+    fontWeight: "bold",
+    color: COLORS.text,
+    marginTop: 5,
   },
 });

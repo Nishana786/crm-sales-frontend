@@ -1,37 +1,38 @@
+import { useRouter } from "expo-router";
 import {
   Image,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
-  Platform,
 } from "react-native";
-import AppHeader from "../../shared/components/AppHeader";
+
+import { COLORS } from "../../theme/colors";
+import { useAuth } from "../../modules/auth/context/AuthContext";
 
 export default function Profile() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/(auth)/login");
+  };
+
   return (
     <ScrollView style={styles.container}>
-      <AppHeader title="Profile" />
+      
+      {/* HEADER */}
+      <View style={styles.header}>
+        <Image style={styles.avatar} />
 
-      <View style={styles.card}>
-        <View style={styles.headerBg} />
-
-        <View style={styles.avatarWrapper}>
-          <Image
-            source={{
-              uri: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",
-            }}
-            style={styles.avatar}
-          />
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.name}>John Agent</Text>
-          <Text style={styles.info}>📞 +91 9999988888</Text>
-          <Text style={styles.info}>✉ john.agent@prosales.com</Text>
-        </View>
+        <Text style={styles.name}>{user?.name || "User"}</Text>
+        <Text style={styles.info}>{user?.phone || "-"}</Text>
+        <Text style={styles.info}>{user?.email || "-"}</Text>
       </View>
 
+      {/* STATS */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>TOTAL CALLS</Text>
@@ -40,137 +41,134 @@ export default function Profile() {
 
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>CONV. RATE</Text>
-          <Text style={[styles.statValue, { color: "#2563eb" }]}>
-            15.4%
-          </Text>
+          <Text style={styles.statValue}>15.4%</Text>
         </View>
       </View>
 
+      {/* MENU */}
       <View style={styles.menuCard}>
-        <MenuItem title="Edit Profile" />
-        <MenuItem title="Payment History" />
-        <MenuItem title="Settings" />
-      </View>
-    </ScrollView>
-  );
-}
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push("/profile/edit")}
+        >
+          <Text style={styles.menuText}>Edit Profile</Text>
+        </TouchableOpacity>
 
-function MenuItem({ title }: any) {
-  return (
-    <View style={styles.menuItem}>
-      <Text style={styles.menuText}>{title}</Text>
-      <Text style={styles.arrow}>›</Text>
-    </View>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push("/profile/payments")}
+        >
+          <Text style={styles.menuText}>Payment History</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push("/profile/settings")}
+        >
+          <Text style={styles.menuText}>Settings</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* LOGOUT */}
+      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f1f5f9",
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    backgroundColor: COLORS.background, // ✅ fixed consistency
   },
 
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: 16,
-
-    ...(Platform.OS === "web"
-      ? { boxShadow: "0px 2px 8px rgba(0,0,0,0.1)" }
-      : { elevation: 4 }),
-  },
-
-  headerBg: {
-    height: 100,
-    backgroundColor: "#2563eb",
-  },
-
-  avatarWrapper: {
-    position: "absolute",
-    top: 50,
-    left: "50%",
-    transform: [{ translateX: -45 }],
+  header: {
+    backgroundColor: COLORS.primary, // ✅ fixed
+    alignItems: "center",
+    paddingVertical: 30,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
 
   avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 10,
     borderWidth: 3,
     borderColor: "#fff",
-  },
-
-  content: {
-    alignItems: "center",
-    marginTop: 50,
-    paddingBottom: 16,
+    backgroundColor: "#e5e7eb", // placeholder
   },
 
   name: {
     fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 6,
+    fontWeight: "bold",
+    color: "#fff",
   },
 
   info: {
-    color: "gray",
-    marginBottom: 4,
+    fontSize: 13,
+    color: "#e5e7eb",
   },
 
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginTop: -30,
+    paddingHorizontal: 16,
   },
 
   statCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    backgroundColor: COLORS.card,
+    flex: 1,
+    marginHorizontal: 5,
     padding: 16,
-    width: "48%",
-
-    ...(Platform.OS === "web"
-      ? { boxShadow: "0px 2px 8px rgba(0,0,0,0.1)" }
-      : { elevation: 3 }),
+    borderRadius: 14,
+    elevation: 3,
   },
 
   statLabel: {
     fontSize: 12,
-    color: "gray",
+    color: COLORS.subText,
   },
 
   statValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginTop: 4,
+    fontSize: 18,
+    fontWeight: "bold",
+    marginTop: 5,
   },
 
   menuCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    backgroundColor: COLORS.card,
+    margin: 16,
+    borderRadius: 14,
     overflow: "hidden",
-
-    ...(Platform.OS === "web"
-      ? { boxShadow: "0px 2px 8px rgba(0,0,0,0.1)" }
-      : { elevation: 3 }),
   },
 
   menuItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     padding: 16,
-    borderBottomWidth: 0.5,
-    borderColor: "#e5e7eb",
+    borderBottomWidth: 1,
+    borderColor: "#eee",
   },
 
   menuText: {
     fontSize: 15,
+    fontWeight: "500",
+    color: COLORS.text,
   },
 
-  arrow: {
-    color: "gray",
+  logoutBtn: {
+    backgroundColor: "#ef4444",
+    marginHorizontal: 16,
+    padding: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+
+  logoutText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });

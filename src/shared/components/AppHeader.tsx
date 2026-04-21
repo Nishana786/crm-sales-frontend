@@ -1,11 +1,12 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-} from "react-native";
+import { COLORS } from "@/src/theme/colors";
 import { useRouter } from "expo-router";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function AppHeader({
   title,
@@ -17,17 +18,17 @@ export default function AppHeader({
   return (
     <View style={styles.container}>
       
-      {/* TOP ROW */}
+      {/* TOP */}
       <View style={styles.headerRow}>
         {showBack ? (
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.back}>‹</Text>
+            <Text style={styles.back}>←</Text>
           </TouchableOpacity>
         ) : (
           <View style={{ width: 20 }} />
         )}
 
-        {title && <Text style={styles.title}>{title}</Text>}
+        <Text style={styles.title}>{title}</Text>
 
         <View style={{ width: 20 }} />
       </View>
@@ -35,7 +36,8 @@ export default function AppHeader({
       {/* SEARCH */}
       {showSearch && (
         <TextInput
-          placeholder="Search leads..."
+          placeholder="Search..."
+          placeholderTextColor="#9ca3af"
           style={styles.search}
         />
       )}
@@ -52,21 +54,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 10,
+    backgroundColor: COLORS.card,
+    padding: 14,
+    borderRadius: 12,
   },
 
   back: {
     fontSize: 22,
+    color: COLORS.primary, // 🔵 FIX
   },
 
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
+    color: COLORS.text,
   },
 
   search: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     padding: 12,
     borderRadius: 12,
+    marginTop: 10,
   },
 });
